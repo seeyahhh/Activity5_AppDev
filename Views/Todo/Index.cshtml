@@ -1,0 +1,177 @@
+﻿@model List<Activity5_AppDev.Models.TodoItem>
+@{
+    ViewData["Title"] = "To Do List";
+    Layout = "_Layout";
+}
+
+<!-- MAIN CONTENT -->
+<div class="container">
+    <div class="page-header">
+        <h1>Tasks</h1>
+        <button class="add-btn" onclick="openModal()">
+            <i class="fa fa-plus"></i> Add Task
+        </button>
+    </div>
+    <hr />
+
+    <div class="task-grid">
+        @if (!Model.Any())
+        {
+            <div class="empty-state">No tasks yet. Click <strong>+ Add Task</strong> to get started!</div>
+        }
+
+        @foreach (var item in Model)
+        {
+            <div class="task-card @(item.IsCompleted ? "completed" : "")">
+                <div class="card-header">
+                    <span class="card-title">@item.Title</span>
+                    <div class="card-meta">
+                        <span class="card-subject">@item.Subject</span>
+                        <div class="dropdown" id="dropdown-@item.Id">
+                            <button onclick="toggleDropdown(@item.Id)">&#8942;</button>
+                            <div class="dropdown-menu">
+                                <form asp-action="ToggleComplete" method="post">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit">
+                                        @(item.IsCompleted ? "Mark Incomplete" : "Mark Complete")
+                                    </button>
+                                </form>
+                                <div>
+                                    <button type="button" onclick="openEditModal(@item.Id, '@Html.Raw(Html.Encode(item.Title))', '@Html.Raw(Html.Encode(item.Subject))', '@Html.Raw(Html.Encode(item.Description))', '@item.Deadline.ToString("yyyy-MM-dd")', '@item.TimeDeadline.ToString("HH:mm")')">
+                                        Edit
+                                    </button>
+                                </div>
+                                <form asp-action="Delete" method="post">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="delete-btn">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="card-divider" />
+                <p class="card-description">@item.Description</p>
+
+                <div class="card-footer">
+                    <span>
+                        <i class="fa-regular fa-calendar"></i>
+                        @item.Deadline.ToString("MMM dd, yyyy")
+                    </span>
+                    <span>
+                        <i class="fa-regular fa-clock"></i>
+                        @item.TimeDeadline.ToString("hh:mm tt")
+                    </span>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ADD TASK MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+        <h2>Add Task</h2>
+        <form asp-action="Add" method="post">
+            <div class="form-group">
+                <label>Task Title</label>
+                <input type="text" name="title" required />
+            </div>
+            <div class="form-group">
+                <label>Subject</label>
+                <input type="text" name="subject" required />
+            </div>
+            <div class="form-group">
+                <label>Deadline</label>
+                <input type="date" name="deadline" required />
+            </div>
+            <div class="form-group">
+                <label>Time Deadline</label>
+                <input type="time" name="timeDeadline" required />
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description"></textarea>
+            </div>
+            <button type="submit" class="submit-btn">Submit</button>
+        </form>
+    </div>
+</div>
+
+<!-- EDIT TASK MODAL -->
+<div class="modal-overlay" id="editModalOverlay">
+    <div class="modal">
+        <button class="modal-close" onclick="closeEditModal()">&#x2715;</button>
+        <h2>Edit Task</h2>
+        <form asp-action="Edit" method="post">
+            <input type="hidden" name="id" id="editId" />
+            <div class="form-group">
+                <label>Task Title</label>
+                <input type="text" name="title" id="editTitle" required />
+            </div>
+            <div class="form-group">
+                <label>Subject</label>
+                <input type="text" name="subject" id="editSubject" required />
+            </div>
+            <div class="form-group">
+                <label>Deadline</label>
+                <input type="date" name="deadline" id="editDeadline" required />
+            </div>
+            <div class="form-group">
+                <label>Time Deadline</label>
+                <input type="time" name="timeDeadline" id="editTimeDeadline" required />
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" id="editDescription"></textarea>
+            </div>
+            <button type="submit" class="submit-btn">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // --- Add Modal ---
+        function openModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+        document.getElementById('modalOverlay').addEventListener('click', function (e) {
+            if (e.target === this) closeModal();
+        });
+
+        // --- Edit Modal ---
+        function openEditModal(id, title, subject, description, deadline, timeDeadline) {
+            document.getElementById('editId').value = id;
+            document.getElementById('editTitle').value = title;
+            document.getElementById('editSubject').value = subject;
+            document.getElementById('editDescription').value = description;
+            document.getElementById('editDeadline').value = deadline;
+            document.getElementById('editTimeDeadline').value = timeDeadline;
+            document.getElementById('editModalOverlay').classList.add('active');
+            document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
+        }
+        function closeEditModal() {
+            document.getElementById('editModalOverlay').classList.remove('active');
+        }
+        document.getElementById('editModalOverlay').addEventListener('click', function (e) {
+            if (e.target === this) closeEditModal();
+        });
+
+        // --- Dropdown ---
+        function toggleDropdown(id) {
+            const el = document.getElementById('dropdown-' + id);
+            el.classList.toggle('open');
+        }
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown.open')
+                    .forEach(d => d.classList.remove('open'));
+            }
+        });
+    </script>
+}
